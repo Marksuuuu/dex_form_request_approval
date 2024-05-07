@@ -1,0 +1,91 @@
+<odoo>
+    <data>
+        <record id="view_preview_dashboard_kanban" model="ir.ui.view">
+            <field name="name">preview.dashboard.kanban</field>
+            <field name="model">preview.dashboard</field>
+            <field name="arch" type="xml">
+                <kanban class="o_kanban_dashboard o_responsive_kanban" create="false" edit="false" delete="false">
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div class="oe_kanban_global_click">
+                                <div class="oe_kanban_card">
+                                    <!-- Lord-icon on the left -->
+
+                                    <div class="o_kanban_icon">
+                                        <div class="o_kanban_record_title" style="text-align: right; font-weight: bold">
+                                            <a type="object" name="view_for_review">
+                                                <field name="model_name"/>
+                                            </a>
+                                        </div>
+
+                                        <lord-icon
+                                                src="dex_form_request_approval/static/src/lrcesku.json"
+                                                trigger="hover"
+                                                style="width:100px;height:100px">
+                                        </lord-icon>
+                                    </div>
+                                    <div class="o_kanban_card_body">
+                                        <!-- Aligning status columns -->
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <div>
+                                                <a type="object" name="to_approve">
+                                                    <span style="font-size:13px; text-align: center; font-weight:bold; color: orange">
+                                                        <span>To Approve
+                                                            <field name="total_count_to_approve"/>
+                                                        </span>
+                                                    </span>
+                                                </a>
+                                            </div>
+                                            <div>
+                                                <a type="object" name="disapproved">
+                                                    <span style="font-size:13px; text-align: center; font-weight:bold; color: red">
+                                                        <span>Disapproved
+                                                            <field name="total_count_disapprove"/>
+                                                        </span>
+                                                    </span>
+                                                </a>
+                                            </div>
+                                            <div>
+                                                <a type="object" name="approved">
+                                                    <span style="font-size:13px; text-align: center; font-weight:bold; color: green">
+                                                        <span>Approved
+                                                            <field name="total_count_approved"/>
+                                                        </span>
+                                                    </span>
+                                                </a>
+                                            </div>
+                                            <div>
+                                                <a type="object" name="draft">
+                                                    <span style="font-size:13px; text-align: center; font-weight:bold; color: grey">
+                                                        <span>Draft
+                                                            <field name="total_count_draft"/>
+                                                        </span>
+                                                    </span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <div>
+                                                <a type="object" name="cancelled">
+                                                    <span style="font-size:13px; text-align: center; font-weight:bold; color: black">
+                                                        <span>Cancelled
+                                                            <field name="total_count_cancel"/>
+                                                        </span>
+                                                    </span>
+                                                </a>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+                                    <!-- Title aligned to the right -->
+
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+    </data>
+</odoo>
