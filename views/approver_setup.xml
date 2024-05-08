@@ -30,6 +30,18 @@
                                 <field name="write_uid"/>
                             </group>
                         </group>
+                        <group>
+                            <group>
+                                <field name="is_need_request_handlers"/>
+                                <field name="requests_handlers"
+                                       attrs="{'invisible': [('is_need_request_handlers', '=', False)], 'required': [('is_need_request_handlers', '=', True)]}">
+                                    <tree editable="bottom">
+                                        <field name="name"/>
+                                        <field name="login"/>
+                                    </tree>
+                                </field>
+                            </group>
+                        </group>
                         <notebook>
                             <page string="First Approver">
                                 <field name="set_first_approvers">

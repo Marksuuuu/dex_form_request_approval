@@ -24,7 +24,9 @@ class ApproverSetup(models.Model):
     set_fourth_approvers = fields.One2many('approver.setup.lines', 'fourth_approvers_id')
     set_fifth_approvers = fields.One2many('approver.setup.lines', 'fifth_approvers_id')
 
+    is_need_request_handlers = fields.Boolean(default=False)
 
+    requests_handlers = fields.Many2many('res.users')
 
 
 class ApproverSetupLines(models.Model):

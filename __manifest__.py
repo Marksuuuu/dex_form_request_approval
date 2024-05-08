@@ -15,7 +15,7 @@
 
     'category': 'Application',
     'application': True,
-    'version': '69.69',
+    'version': '13.0.0.1',
 
     # any module necessary for this one to work correctly
     'depends': ['base', 'hr'],
@@ -32,6 +32,8 @@
         'views/menu/menu.xml',
         'views/form_request_types.xml',
         'views/approver_setup.xml',
+        'wizard/cancellation_reason_views.xml',
+        'wizard/disapprove_reason_views.xml',
         'views/request_for_cash_advance.xml',
         'views/official_business_form.xml',
         'views/it_request_form.xml',
@@ -42,7 +44,6 @@
         'views/grab_request_form.xml',
         'views/res_config_settings.xml',
         'views/preview_dashboard.xml',
-
         ## Report
 
         'reports/menu/paper_types.xml',

@@ -12,74 +12,59 @@
                                     <!-- Lord-icon on the left -->
 
                                     <div class="o_kanban_icon">
-                                        <div class="o_kanban_record_title" style="text-align: right; font-weight: bold">
+                                        <div class="o_kanban_record_title"
+                                             style="text-align: center; font-size: 18px; margin-bottom: 20px; font-weight: bold">
                                             <a type="object" name="view_for_review">
                                                 <field name="model_name"/>
                                             </a>
                                         </div>
-
-                                        <lord-icon
-                                                src="dex_form_request_approval/static/src/lrcesku.json"
-                                                trigger="hover"
-                                                style="width:100px;height:100px">
-                                        </lord-icon>
                                     </div>
                                     <div class="o_kanban_card_body">
                                         <!-- Aligning status columns -->
-                                        <div style="display: flex; justify-content: space-between;">
-                                            <div>
-                                                <a type="object" name="to_approve">
-                                                    <span style="font-size:13px; text-align: center; font-weight:bold; color: orange">
-                                                        <span>To Approve
-                                                            <field name="total_count_to_approve"/>
-                                                        </span>
-                                                    </span>
-                                                </a>
-                                            </div>
-                                            <div>
-                                                <a type="object" name="disapproved">
-                                                    <span style="font-size:13px; text-align: center; font-weight:bold; color: red">
-                                                        <span>Disapproved
-                                                            <field name="total_count_disapprove"/>
-                                                        </span>
-                                                    </span>
-                                                </a>
-                                            </div>
-                                            <div>
-                                                <a type="object" name="approved">
-                                                    <span style="font-size:13px; text-align: center; font-weight:bold; color: green">
-                                                        <span>Approved
-                                                            <field name="total_count_approved"/>
-                                                        </span>
-                                                    </span>
-                                                </a>
-                                            </div>
-                                            <div>
-                                                <a type="object" name="draft">
-                                                    <span style="font-size:13px; text-align: center; font-weight:bold; color: grey">
-                                                        <span>Draft
-                                                            <field name="total_count_draft"/>
-                                                        </span>
-                                                    </span>
-                                                </a>
-                                            </div>
+                                        <style>
+                                            .kanban-btn {
+                                            width: 100%;
+                                            height: 50px; /* Adjust as needed */
+                                            margin-bottom: 5px; /* Adjust spacing between buttons */
+                                            }
+                                        </style>
+                                        <div>
+                                            <button class="btn btn-warning kanban-btn" type="object" name="to_approve">
+                                                <span>To Approve
+                                                    ( <field name="total_count_to_approve"/> )
+                                                </span>
+                                            </button>
                                         </div>
-                                        <div style="display: flex; justify-content: space-between;">
-                                            <div>
-                                                <a type="object" name="cancelled">
-                                                    <span style="font-size:13px; text-align: center; font-weight:bold; color: black">
-                                                        <span>Cancelled
-                                                            <field name="total_count_cancel"/>
-                                                        </span>
-                                                    </span>
-                                                </a>
-                                            </div>
+                                        <div>
+                                            <button class="btn btn-danger kanban-btn" type="object" name="disapproved">
+                                                <span>Disapproved
+                                                    ( <field name="total_count_disapprove"/> )
+                                                </span>
+                                            </button>
                                         </div>
-
-
+                                        <div>
+                                            <button class="btn btn-success kanban-btn" type="object" name="approved">
+                                                <span>Approved
+                                                    ( <field name="total_count_approved"/> )
+                                                </span>
+                                            </button>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-secondary kanban-btn" type="object" name="draft">
+                                                <span>Draft
+                                                    ( <field name="total_count_draft"/> )
+                                                </span>
+                                            </button>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-dark kanban-btn" type="object" name="cancelled">
+                                                <span>Cancelled
+                                                    ( <field name="total_count_cancel"/> )
+                                                </span>
+                                            </button>
+                                        </div>
                                     </div>
                                     <!-- Title aligned to the right -->
-
                                 </div>
                             </div>
                         </t>

@@ -93,19 +93,19 @@
                             </div>
                         </div>
 
-                        <h2>Setup Purchase Representative</h2>
-                        <div class="row mt16 o_settings_container">
-                            <div class="col-12 col-lg-6 o_setting_box">
-                                <div class="o_setting_left_pane"/>
-                                <div class="o_setting_right_pane">
-                                    <div class="form-group">
-                                        <span class="text-muted">
-                                            <field name="purchase_rep"/>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <!--                        <h2>Setup Purchase Representative</h2>-->
+                        <!--                        <div class="row mt16 o_settings_container">-->
+                        <!--                            <div class="col-12 col-lg-6 o_setting_box">-->
+                        <!--                                <div class="o_setting_left_pane"/>-->
+                        <!--                                <div class="o_setting_right_pane">-->
+                        <!--                                    <div class="form-group">-->
+                        <!--                                        <span class="text-muted">-->
+                        <!--                                            <field name="purchase_rep"/>-->
+                        <!--                                        </span>-->
+                        <!--                                    </div>-->
+                        <!--                                </div>-->
+                        <!--                            </div>-->
+                        <!--                        </div>-->
 
                         <h2>Read Me</h2>
                         <div class="row mt16 o_settings_container">

@@ -8,7 +8,7 @@
             <field name="arch" type="xml">
                 <form string="Form" duplicate="false">
                     <header>
-                        <button name="get_purchase_rep_email" type="object" string="ObjectButton"/>
+                        <!--                        <button name="check_get_purchase_rep_email" type="object" string="ObjectButton"/>-->
                         <button name="submit_for_approval" type="object" string="Submit for Approval"
                                 class="oe_highlight"
                                 confirm="Are you sure you want to submit it will not be able to Redo."

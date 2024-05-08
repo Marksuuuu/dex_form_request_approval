@@ -26,36 +26,63 @@ class OnLinePurchases(models.Model):
     is_approver = fields.Boolean(compute="compute_approver")
 
     date_purchased = fields.Date(string="Date Purchased")
-    credit_card_number = fields.Char(string="Credit", size=4)
+    credit_card_number = fields.Char(string="Credit Card#", size=4)
     final_amount = fields.Float(string="Final Amount")
 
     parameter_match = fields.Boolean(string="Parameter Match", compute='_compute_parameter_match')
     flag_counter = fields.Boolean(default=False)
 
+    def check_get_purchase_rep_email(self):
+        self.checking_if_need_request_are_true()
+
     def get_purchase_rep_email(self):
-        parameter_value = self.env['ir.config_parameter'].sudo().get_param('dex_form_request_approval.purchase_rep')
-        search_for_user = self.env['hr.employee'].search([('user_id', '=', int(parameter_value))])
-        return search_for_user.work_email
+        work_emails = []  # Initialize an empty list to store work emails
+        for record in self:
+            # Assuming record is related to a student or contains necessary information
+            # to find the related student record
+
+            # Retrieve the student record or department record
+            student_record = record.department_id  # Replace department_id with the appropriate field
+
+            # Assuming requests_handlers is a one-to-many or many-to-many field on the student record
+            courses = student_record.requests_handlers  # Accessing the courses of the student
+
+            # Assuming user_id is a field on hr.employee model
+            search_for_users = self.env['hr.employee'].search([('user_id', 'in', courses.mapped('id'))])
+
+            # Loop through all matching HR employees and append their work emails to the list
+            for user in search_for_users:
+                work_emails.append(user.work_email)
+
+        # Return the list of work emails
+        print(work_emails)
+        return work_emails
 
     @api.depends('parameter_match', 'flag_counter')
     def _compute_parameter_match(self):
         for record in self:
             # Retrieve the configuration parameter value
-            parameter_value = self.env['ir.config_parameter'].sudo().get_param('dex_form_request_approval.purchase_rep')
-            print(parameter_value)
+            # Assuming you have a student record with id student_id
+            student_record = record.department_id
+
+            # Accessing the courses of the student
+            courses = student_record.requests_handlers
+
+            # Initialize flag_counter and parameter_match to False
+            record.flag_counter = False
+            record.parameter_match = False
 
             # Get current user data
             current_user = self.env.user
 
-            print(current_user.id)
-
-            # Compare parameter value with current user's name
-            if int(parameter_value) == int(current_user.id):
-                record.flag_counter = True
-                record.parameter_match = True
-            else:
-                record.flag_counter = False
-                record.parameter_match = False
+            # Iterating through the courses
+            for course in courses:
+                # Compare parameter value with current user's id
+                if int(course.id) == int(current_user.id):
+                    record.flag_counter = True
+                    print(record.flag_counter)
+                    record.parameter_match = True
+                    break  # No need to continue if match is found
 
     def _get_department_domain(self):
         approval_types = self.env['approver.setup'].search([('approval_type', '=', 'online_purchases')])
@@ -163,10 +190,19 @@ class OnLinePurchases(models.Model):
                 print('asdasd')
                 rec.get_approvers_email()
                 rec.submit_to_final_approver()
-                rec.send_to_purchase_rep(self.get_purchase_rep_email())
+                rec.checking_if_need_request_are_true()
             elif rec.approval_status == 'disapprove':
                 rec.get_approvers_email()
                 rec.submit_for_disapproval()
+
+    @api.depends('department_id.is_need_request_handlers')
+    def checking_if_need_request_are_true(self):
+        for rec in self:
+            if rec.department_id.is_need_request_handlers:
+                rec.send_to_purchase_rep(self.get_purchase_rep_email())
+            else:
+                print('else')
+                pass
 
     def submit_for_disapproval(self):
         for rec in self:
@@ -226,9 +262,9 @@ class OnLinePurchases(models.Model):
         msg = MIMEMultipart()
         msg['From'] = formataddr(('Odoo Mailer', sender))
 
-        msg['To'] = recipient_list
+        msg['To'] = ''.join(recipient_list)
         msg[
-            'Subject'] = f"{re.sub(r'[-_]', ' ', self.form_request_type).title() if self.approval_status else ''} Request has been {re.sub(r'[-_]', ' ', self.approval_status).title() if self.approval_status else ''} [{self.name}], Please review"
+            'Subject'] = f"{re.sub(r'[-_]', ' ', self.form_request_type).title() if self.approval_status else ''} Request has been {re.sub(r'[-_]', ' ', self.approval_status).title() if self.approval_status else ''} [{self.name}], Please Process"
         html_content = """
                                     <!DOCTYPE html>
                                         <html lang="en">
