@@ -21,7 +21,7 @@ class RequestForCashAdvance(models.Model):
                                   store=True)
     approver_count = fields.Integer(compute='_compute_approver_count', store=True)
     check_status = fields.Char(compute='compute_check_status', store=True)
-    supplier_id = fields.Many2one('res.partner', string="Supplier", required=True)
+    supplier_id = fields.Char(string="Supplier", required=True)
     invoice_or_ref = fields.Char(string='Invoice or Reference')
 
     approved_by = fields.Many2one('res.users', string="Approved By")
@@ -292,18 +292,20 @@ class RequestForCashAdvance(models.Model):
                                                                      <th>Purpose</th>
                                                                  </tr>
                                                              </thead>
+                                                             <tbody>
+                                                             
                                                              """
         for rec in self.rfca_lines:
             html_content += f"""
-                                                             <tbody>
                                                                      <tr>
                                                                          <td>{rec._amount if rec._amount else ''}</td>
                                                                          <td>{rec._purpose if rec._purpose else ''}</td>
                                                                      </tr>
-                                                             </tbody> 
-                                                         </table>"""
+                                                             """
 
         html_content += f"""
+        </tbody> 
+                                                         </table>
                                                          <div class="button-container">
                                                             <a href="{self.generate_odoo_link()}" style="background-color: blue; margin-right: 20px; margin-top: 20px;" class="button">Dashboard</a>
                                                          </div>"""
@@ -481,18 +483,20 @@ class RequestForCashAdvance(models.Model):
                                                                      <th>Purpose</th>
                                                                  </tr>
                                                              </thead>
+                                                             <tbody>
+                                                             
                                                              """
         for rec in self.rfca_lines:
             html_content += f"""
-                                                             <tbody>
                                                                      <tr>
                                                                          <td>{rec._amount if rec._amount else ''}</td>
                                                                          <td>{rec._purpose if rec._purpose else ''}</td>
                                                                      </tr>
-                                                             </tbody> 
-                                                         </table>"""
+                                                            """
 
         html_content += f"""
+         </tbody> 
+                                                         </table>
                                                          <div class="button-container">
                                                             <a href='{approval_url}' style="background-color: green; margin-right: 20px; margin-top: 20px;" class="button">Approve</a>
                                                             <a href='{disapproval_url}' style="background-color: red; margin-right: 20px; margin-top: 20px;" class="button">Disapprove</a>
@@ -832,18 +836,20 @@ class RequestForCashAdvance(models.Model):
                                                              <th>Purpose</th>
                                                          </tr>
                                                      </thead>
+                                                     <tbody>
+                                                     
                                                      """
         for rec in self.rfca_lines:
             html_content += f"""
-                                                     <tbody>
                                                              <tr>
                                                                  <td>{rec._amount if rec._amount else ''}</td>
                                                                  <td>{rec._purpose if rec._purpose else ''}</td>
                                                              </tr>
-                                                     </tbody> 
-                                                 </table>"""
+                                                     """
 
         html_content += f"""
+        </tbody> 
+                                                 </table>
                                                  <div class="button-container">
                                                     <a href="{self.generate_odoo_link()}" style="background-color: blue; margin-right: 20px; margin-top: 20px;" class="button">Dashboard</a>
                                                  </div>"""
@@ -984,18 +990,20 @@ class RequestForCashAdvance(models.Model):
                                                                              <th>Purpose</th>
                                                                          </tr>
                                                                      </thead>
+                                                                     <tbody>
+                                                                     
                                                                      """
         for rec in self.rfca_lines:
             html_content += f"""
-                                                                     <tbody>
                                                                              <tr>
                                                                                  <td>{rec._amount if rec._amount else ''}</td>
                                                                                  <td>{rec._purpose if rec._purpose else ''}</td>
                                                                              </tr>
-                                                                     </tbody> 
-                                                                 </table>"""
+                                                                     """
 
         html_content += f"""
+        </tbody> 
+                                                                 </table>
                                                                  <div class="button-container">
                                                                      <a href='{approval_url}' style="background-color: green; margin-right: 20px; margin-top: 20px;" class="button">Approve</a>
                                                                     <a href='{disapproval_url}' style="background-color: red; margin-right: 20px; margin-top: 20px;" class="button">Disapprove</a>

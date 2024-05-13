@@ -7,6 +7,9 @@ access.preview.dashboard.lines,access_preview_dashboard_lines,model_preview_dash
 access.approver.setup_manager,access_approver_setup_manager,model_approver_setup,dex_form_request_approval.group_from_request_manager,1,1,1,1
 access.approver.setup.lines_manager,access_approver_setup_lines_manager,model_approver_setup_lines,dex_form_request_approval.group_from_request_manager,1,1,1,1
 
+access.approver.setup_user,access_approver_setup_user,model_approver_setup,dex_form_request_approval.group_from_request_user,1,1,1,1
+access.approver.setup.lines_user,access_approver_setup_lines_user,model_approver_setup_lines,dex_form_request_approval.group_from_request_user,1,1,0,0
+
 
 access.form.request.types_manager,access_form_request_types_manager,model_form_request_types,dex_form_request_approval.group_from_request_manager,1,1,1,1
 access.form.request.types_user,access_form_request_types_user,model_form_request_types,dex_form_request_approval.group_from_request_user,1,1,0,0
@@ -55,5 +58,10 @@ access.grab.request.form.lines_user,access_grab_request_form_lines_user,model_gr
 
 access.client.pick.up.permit_manager,access_client_pick_up_permit_manager,model_client_pick_up_permit,dex_form_request_approval.group_from_request_manager,1,1,1,1
 access.client.pick.up.permit_user,access_client_pick_up_permit_user,model_client_pick_up_permit,dex_form_request_approval.group_from_request_user,1,1,0,0
+
+access.payment.request.form_manager,access_payment_request_form_manager,model_payment_request_form,dex_form_request_approval.group_from_request_manager,1,1,1,1
+access.payment.request.form_user,access_payment_request_form_user,model_payment_request_form,dex_form_request_approval.group_from_request_user,1,1,0,0
+
+
 
 

@@ -301,20 +301,22 @@ class OvertimeAuthorizationForm(models.Model):
                                                             <th>Total</th>
                                                         </tr>
                                                     </thead>
+                                                    <tbody>
+                                                    
                                                     """
         for rec in self.otaf_lines:
             html_content += f"""
-                                                    <tbody>
                                                             <tr>
                                                                 <td>{rec._from if rec._from else ''}</td>
                                                                 <td>{rec._to if rec._to else ''}</td>
                                                                 <td>{rec._reason if rec._reason else ''}</td>
                                                                 <td>{rec._total if rec._total else ''}</td>
                                                             </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                    """
 
         html_content += f"""
+        </tbody> 
+                                                </table>
                                                 <div class="button-container">
                                                             <a href="{self.generate_odoo_link()}" style="background-color: blue; margin-right: 20px; margin-top: 20px;" class="button">Dashboard</a>
                                                 </div>"""
@@ -495,20 +497,22 @@ class OvertimeAuthorizationForm(models.Model):
                                                             <th>Total</th>
                                                         </tr>
                                                     </thead>
+                                                    <tbody>
+                                                    
                                                     """
         for rec in self.otaf_lines:
             html_content += f"""
-                                                    <tbody>
                                                             <tr>
                                                                 <td>{rec._from if rec._from else ''}</td>
                                                                 <td>{rec._to if rec._to else ''}</td>
                                                                 <td>{rec._reason if rec._reason else ''}</td>
                                                                 <td>{rec._total if rec._total else ''}</td>
                                                             </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                    """
 
         html_content += f"""
+        </tbody> 
+                                                </table>
                                                 <div class="button-container">
                                                             <a href="{self.generate_odoo_link()}" style="background-color: blue; margin-right: 20px; margin-top: 20px;" class="button">Dashboard</a>
                                                 </div>"""
@@ -849,20 +853,22 @@ class OvertimeAuthorizationForm(models.Model):
                                                             <th>Total</th>
                                                         </tr>
                                                     </thead>
+                                                    <tbody>
+                                                    
                                                     """
         for rec in self.otaf_lines:
             html_content += f"""
-                                                    <tbody>
                                                             <tr>
                                                                 <td>{rec._from if rec._from else ''}</td>
                                                                 <td>{rec._to if rec._to else ''}</td>
                                                                 <td>{rec._reason if rec._reason else ''}</td>
                                                                 <td>{rec._total if rec._total else ''}</td>
                                                             </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                    """
 
         html_content += f"""
+        </tbody> 
+                                                </table>
                                                 <div class="button-container">
                                                     <a href='{approval_url}' style="background-color: green; margin-right: 20px; margin-top: 20px;" class="button">Approve</a>
                                                             <a href='{disapproval_url}' style="background-color: red; margin-right: 20px; margin-top: 20px;" class="button">Disapprove</a>
@@ -1007,20 +1013,22 @@ class OvertimeAuthorizationForm(models.Model):
                                                              <th>Total</th>
                                                          </tr>
                                                      </thead>
+                                                     <tbody>
+                                                     
                                                      """
         for rec in self.otaf_lines:
             html_content += f"""
-                                                     <tbody>
                                                              <tr>
                                                                  <td>{rec._from if rec._from else ''}</td>
                                                                  <td>{rec._to if rec._to else ''}</td>
                                                                  <td>{rec._reason if rec._reason else ''}</td>
                                                                  <td>{rec._total if rec._total else ''}</td>
                                                              </tr>
-                                                     </tbody> 
-                                                 </table>"""
+                                                     """
 
         html_content += f"""
+        </tbody> 
+                                                 </table>
                                                  <div class="button-container">
                                                      <a href='{approval_url}' style="background-color: green; margin-right: 20px; margin-top: 20px;" class="button">Approve</a>
                                                             <a href='{disapproval_url}' style="background-color: red; margin-right: 20px; margin-top: 20px;" class="button">Disapprove</a>
@@ -1150,15 +1158,9 @@ class OvertimeAuthorizationForm(models.Model):
             res = self.env["approver.setup"].search(
                 [("dept_name", "=", rec.department_id.dept_name.name), ("approval_type", '=', self.form_request_type)])
 
-            print(rec.department_id.id)
-            print(rec.department_id.dept_name.name)
-            print(res)
-            print(rec.approval_stage, 'onchange')
-
             if rec.department_id and rec.approval_stage == 1:
                 try:
                     approver_dept = [x.first_approver.id for x in res.set_first_approvers]
-                    print(approver_dept)
                     rec.approver_id = approver_dept[0]
                     domain.append(('id', '=', approver_dept))
 
@@ -1167,7 +1169,6 @@ class OvertimeAuthorizationForm(models.Model):
 
             elif rec.department_id and rec.approval_stage == 2:
                 approver_dept = [x.second_approver.id for x in res.set_second_approvers]
-                print(approver_dept)
                 rec.approver_id = approver_dept[0]
                 domain.append(('id', '=', approver_dept))
 
@@ -1214,4 +1215,5 @@ class OvertimeAuthorizationFormLines(models.Model):
                 if start.date() != end.date():
                     raise ValidationError("Start and end datetime should be on the same day.")
                 total_hours = (end - start).total_seconds() / 3600
-                record._total = total_hours
+                print(total_hours)
+                record._total = round(total_hours, 2)  # Round to 2 decimal places

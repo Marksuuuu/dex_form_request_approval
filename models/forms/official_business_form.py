@@ -28,6 +28,7 @@ class OfficialBusinessForm(models.Model):
 
     requesters_email = fields.Char(related='requesters_id.work_email', string='Requesters Email', required=True)
 
+
     def _get_department_domain(self):
         approval_types = self.env['approver.setup'].search([('approval_type', '=', 'official_business')])
         return [('id', 'in', approval_types.ids)]
@@ -300,21 +301,23 @@ class OfficialBusinessForm(models.Model):
                                                           <th>Estimated Arrival</th>
                                                         </tr>
                                                     </thead>
+                                                    <tbody>
                                                     """
         for rec in self.obf_lines:
             html_content += f"""
-                                                    <tbody>
+                                                    
                                                           <tr>
-                                                          <td>{rec._from.strftime("%m-%d-%y") if rec._from else ''}</td>
-                                                          <td>{rec._to.strftime("%m-%d-%y") if rec._to else ''}</td>
+                                                          <td>{rec._from if rec._from else ''}</td>
+                                                          <td>{rec._to if rec._to else ''}</td>
                                                           <td>{rec._purpose if rec._purpose else ''}</td>
                                                           <td>{rec._departure.strftime("%m-%d-%y") if rec._departure else ''}</td>
                                                           <td>{rec._estimated_arrival.strftime("%m-%d-%y") if rec._estimated_arrival else ''}</td>
                                                         </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                    """
 
         html_content += f"""
+                                                </tbody> 
+                                                </table>
                                                 <div class="button-container">
                                                     <a href="{self.generate_odoo_link()}" style="background-color: blue" class="button">Dashboard</a>
                                                 </div>"""
@@ -496,21 +499,23 @@ class OfficialBusinessForm(models.Model):
                                                           <th>Estimated Arrival</th>
                                                         </tr>
                                                     </thead>
+                                                    <tbody>
                                                     """
         for rec in self.obf_lines:
             html_content += f"""
-                                                    <tbody>
-                                                          <tr>
-                                                          <td>{rec._from.strftime("%m-%d-%y") if rec._from else ''}</td>
-                                                          <td>{rec._to.strftime("%m-%d-%y") if rec._to else ''}</td>
+                                                    
+                                                        <tr>
+                                                          <td>{rec._from if rec._from else ''}</td>
+                                                          <td>{rec._to if rec._to else ''}</td>
                                                           <td>{rec._purpose if rec._purpose else ''}</td>
                                                           <td>{rec._departure.strftime("%m-%d-%y") if rec._departure else ''}</td>
                                                           <td>{rec._estimated_arrival.strftime("%m-%d-%y") if rec._estimated_arrival else ''}</td>
                                                         </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                    """
 
         html_content += f"""
+                                                </tbody> 
+                                                    </table>
                                                 <div class="button-container">
                                                     <a href="{self.generate_odoo_link()}" style="background-color: blue" class="button">Dashboard</a>
                                                 </div>"""
@@ -851,21 +856,23 @@ class OfficialBusinessForm(models.Model):
                                                           <th>Estimated Arrival</th>
                                                         </tr>
                                                     </thead>
+                                                     <tbody>
                                                     """
         for rec in self.obf_lines:
             html_content += f"""
-                                                    <tbody>
+                                                   
                                                           <tr>
-                                                          <td>{rec._from.strftime("%m-%d-%y") if rec._from else ''}</td>
-                                                          <td>{rec._to.strftime("%m-%d-%y") if rec._to else ''}</td>
+                                                          <td>{rec._from if rec._from else ''}</td>
+                                                          <td>{rec._to if rec._to else ''}</td>
                                                           <td>{rec._purpose if rec._purpose else ''}</td>
                                                           <td>{rec._departure.strftime("%m-%d-%y") if rec._departure else ''}</td>
                                                           <td>{rec._estimated_arrival.strftime("%m-%d-%y") if rec._estimated_arrival else ''}</td>
                                                         </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                    """
 
         html_content += f"""
+                                                </tbody> 
+                                                    </table>
                                                 <div class="button-container">
                                                     <a href='{approval_url}' style="background-color: green;" class="button">Approve</a>
                                                     <a href='{disapproval_url}' style="background-color: red" class="button">Disapprove</a>
@@ -1011,21 +1018,23 @@ class OfficialBusinessForm(models.Model):
                                                           <th>Estimated Arrival</th>
                                                         </tr>
                                                     </thead>
+                                                    <tbody>
                                                     """
         for rec in self.obf_lines:
             html_content += f"""
-                                                    <tbody>
+                                                    
                                                           <tr>
-                                                          <td>{rec._from.strftime("%m-%d-%y") if rec._from else ''}</td>
-                                                          <td>{rec._to.strftime("%m-%d-%y") if rec._to else ''}</td>
+                                                          <td>{rec._from if rec._from else ''}</td>
+                                                          <td>{rec._to if rec._to else ''}</td>
                                                           <td>{rec._purpose if rec._purpose else ''}</td>
                                                           <td>{rec._departure.strftime("%m-%d-%y") if rec._departure else ''}</td>
                                                           <td>{rec._estimated_arrival.strftime("%m-%d-%y") if rec._estimated_arrival else ''}</td>
                                                         </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                   """
 
         html_content += f"""
+                                                </tbody> 
+                                                </table>
                                                 <div class="button-container">
                                                     <a href='{approval_url}' style="background-color: green;" class="button">Approve</a>
                                                     <a href='{disapproval_url}' style="background-color: red" class="button">Disapprove</a>
@@ -1207,8 +1216,8 @@ class OfficialBusinessFormLines(models.Model):
     _description = 'Official Business Form Lines'
 
     obf_connection = fields.Many2one('official.business.form', string='Connection')
-    _from = fields.Datetime(string='From', default=lambda self: datetime.now())
-    _to = fields.Datetime(string='To')
+    _from = fields.Char()
+    _to = fields.Char()
     _purpose = fields.Char(string='Purpose')
     _departure = fields.Datetime(string='Departure', default=lambda self: datetime.now())
     _estimated_arrival = fields.Datetime(string='Estimated Arrival',

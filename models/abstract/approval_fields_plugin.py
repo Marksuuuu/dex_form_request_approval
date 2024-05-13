@@ -19,6 +19,60 @@ class ApprovalFieldsPlugin(models.AbstractModel):
     def _get_department_domain(self):
         return []
 
+    @api.model
+    def _get_default_journal(self):
+        context = self._context
+        company_id = context.get('force_company', context.get('default_company_id', self.env.company.id))
+        journal_id = context.get('default_journal_id')
+
+        move_type = context.get('default_type', 'entry')
+        sale_types = self.get_sale_types(include_receipts=True)
+        purchase_types = self.get_purchase_types(include_receipts=True)
+
+        if journal_id:
+            journal = self.env['account.journal'].browse(journal_id)
+            if move_type != 'entry' and journal.type != ('sale' if move_type in sale_types else 'purchase'):
+                raise UserError(_("Cannot create an invoice of type %s with a journal having %s as type.") % (
+                    move_type, journal.type))
+        else:
+            journal_type = 'general'
+            if move_type in sale_types:
+                journal_type = 'sale'
+            elif move_type in purchase_types:
+                journal_type = 'purchase'
+
+            domain = [('company_id', '=', company_id), ('type', '=', journal_type)]
+            if context.get('default_currency_id'):
+                domain += [('currency_id', '=', context['default_currency_id'])]
+
+            journal = self.env['account.journal'].search(domain, limit=1)
+            if not journal:
+                error_msg = _('Please define an accounting %s journal in your company') % (
+                    'miscellaneous' if journal_type == 'general' else journal_type)
+                raise UserError(error_msg)
+
+        return journal
+
+    company_id = fields.Many2one(comodel_name='res.company', string='Company',
+                                 store=True, readonly=True,
+                                 compute='_compute_company_id')
+
+    journal_id = fields.Many2one('account.journal', string='Journal', required=True, readonly=True,
+                                 states={'draft': [('readonly', False)]},
+                                 domain="[('company_id', '=', company_id)]",
+                                 default=_get_default_journal)
+
+    type = fields.Selection(selection=[
+        ('entry', 'Journal Entry'),
+        ('out_invoice', 'Customer Invoice'),
+        ('out_refund', 'Customer Credit Note'),
+        ('in_invoice', 'Vendor Bill'),
+        ('in_refund', 'Vendor Credit Note'),
+        ('out_receipt', 'Sales Receipt'),
+        ('in_receipt', 'Purchase Receipt'),
+    ], string='Type', required=True, store=True, index=True, readonly=True, tracking=True,
+        default="entry", change_default=True)
+
     name = fields.Char(string='Control No.', copy=False, readonly=True, index=True,
                        default=lambda self: _('New'), tracking=True)
     requesters_id = fields.Many2one('hr.employee', string='Requesters', required=True,
@@ -77,6 +131,22 @@ class ApprovalFieldsPlugin(models.AbstractModel):
 
     def approval_dashboard_link(self):
         pass
+
+    @api.model
+    def get_purchase_types(self, include_receipts=False):
+        return ['in_invoice', 'in_refund'] + (include_receipts and ['in_receipt'] or [])
+
+    @api.depends('journal_id')
+    def _compute_company_id(self):
+        for move in self:
+            move.company_id = move.journal_id.company_id or move.company_id or self.env.company
+
+    @api.model
+    def get_sale_types(self, include_receipts=False):
+        return ['out_invoice', 'out_refund'] + (include_receipts and ['out_receipt'] or [])
+
+    def is_sale_document(self, include_receipts=False):
+        return self.type in self.get_sale_types(include_receipts)
 
     def user_error_notif(self, msg):
         notification = {

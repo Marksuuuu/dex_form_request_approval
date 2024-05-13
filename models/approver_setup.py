@@ -10,12 +10,13 @@ class ApproverSetup(models.Model):
     approval_type = fields.Selection([
         ('official_business', 'Official Business Form'),
         ('it_request', 'IT Request Form'),
-        ('overtime_authorization', 'Overtime Authorization Form'),
-        ('gasoline_allowance', 'Gasoline Allowance Form'),
+        ('overtime_authorization', 'Overtime Authorization'),
+        ('gasoline_allowance', 'Gasoline Allowance'),
         ('online_purchases', 'Online Purchases'),
         ('cash_advance', 'Request for Cash Advance'),
         ('grab_request', 'Grab Request Form'),
         ('client_pickup', 'Client Pickup Permit'),
+        ('payment_request', 'Payment Request'),
     ], string='Form Types', required=True)
     no_of_approvers = fields.Integer()
     set_first_approvers = fields.One2many('approver.setup.lines', 'first_approvers_id')

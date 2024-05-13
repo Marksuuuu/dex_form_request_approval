@@ -74,6 +74,12 @@ class PreviewDashboard(models.Model):
                 'approved': 'total_count_approved',
                 'draft': 'total_count_draft',
             },
+            'payment.request.form': {
+                'to_approve': 'total_count_to_approve',
+                'disapprove': 'total_count_disapprove',
+                'approved': 'total_count_approved',
+                'draft': 'total_count_draft',
+            },
             # Add other models here
         }
 
@@ -115,6 +121,9 @@ class PreviewDashboard(models.Model):
         elif self.model_name == 'It Request Form':
             action = self.env.ref('dex_form_request_approval.it_request_form_action_id').read()[0]
             action['domain'] = [('state', '=', 'to_approve')]
+        elif self.model_name == 'Payment Request Form':
+            action = self.env.ref('dex_form_request_approval.payment_request_form_action_id').read()[0]
+            action['domain'] = [('state', '=', 'to_approve')]
         else:
             action = self.env.ref('dex_form_request_approval.view_preview_dashboard_kanban').read()[0]
         return action
@@ -143,6 +152,9 @@ class PreviewDashboard(models.Model):
             action['domain'] = [('state', '=', 'cancel')]
         elif self.model_name == 'It Request Form':
             action = self.env.ref('dex_form_request_approval.it_request_form_action_id').read()[0]
+            action['domain'] = [('state', '=', 'cancel')]
+        elif self.model_name == 'Payment Request Form':
+            action = self.env.ref('dex_form_request_approval.payment_request_form_action_id').read()[0]
             action['domain'] = [('state', '=', 'cancel')]
         else:
             action = self.env.ref('dex_form_request_approval.view_preview_dashboard_kanban').read()[0]
@@ -173,6 +185,9 @@ class PreviewDashboard(models.Model):
         elif self.model_name == 'It Request Form':
             action = self.env.ref('dex_form_request_approval.it_request_form_action_id').read()[0]
             action['domain'] = [('state', '=', 'disapprove')]
+        elif self.model_name == 'Payment Request Form':
+            action = self.env.ref('dex_form_request_approval.payment_request_form_action_id').read()[0]
+            action['domain'] = [('state', '=', 'disapprove')]
         else:
             action = self.env.ref('dex_form_request_approval.view_preview_dashboard_kanban').read()[0]
         return action
@@ -201,6 +216,9 @@ class PreviewDashboard(models.Model):
             action['domain'] = [('state', '=', 'approved')]
         elif self.model_name == 'It Request Form':
             action = self.env.ref('dex_form_request_approval.it_request_form_action_id').read()[0]
+            action['domain'] = [('state', '=', 'approved')]
+        elif self.model_name == 'Payment Request Form':
+            action = self.env.ref('dex_form_request_approval.payment_request_form_action_id').read()[0]
             action['domain'] = [('state', '=', 'approved')]
         else:
             action = self.env.ref('dex_form_request_approval.view_preview_dashboard_kanban').read()[0]
@@ -231,6 +249,9 @@ class PreviewDashboard(models.Model):
         elif self.model_name == 'It Request Form':
             action = self.env.ref('dex_form_request_approval.it_request_form_action_id').read()[0]
             action['domain'] = [('state', '=', 'draft')]
+        elif self.model_name == 'Payment Request Form':
+            action = self.env.ref('dex_form_request_approval.payment_request_form_action_id').read()[0]
+            action['domain'] = [('state', '=', 'draft')]
         else:
             action = self.env.ref('dex_form_request_approval.view_preview_dashboard_kanban').read()[0]
         return action
@@ -254,6 +275,8 @@ class PreviewDashboard(models.Model):
             action = self.env.ref('dex_form_request_approval.request_for_cash_advance_form_action_id').read()[0]
         elif self.model_name == 'It Request Form':
             action = self.env.ref('dex_form_request_approval.it_request_form_action_id').read()[0]
+        elif self.model_name == 'Payment Request Form':
+            action = self.env.ref('dex_form_request_approval.payment_request_form_action_id').read()[0]
         else:
             action = self.env.ref('dex_form_request_approval.view_preview_dashboard_kanban').read()[0]
         return action
@@ -269,15 +292,26 @@ class PreviewDashboard(models.Model):
     def _update_record(self, field_name, total_count, model_title):
         model_name = re.sub(r'[.-]', ' ', model_title).title()
         try:
-            record = self.env['preview.dashboard'].search([('name', '=', model_title)], limit=1)
-            if record:
-                record.write({field_name: total_count, 'model_name': model_name})
+            existing_records = self.env['preview.dashboard'].search([('name', '=', model_title)])
+            if existing_records:
+                for existing_record in existing_records:
+                    existing_record.write({field_name: total_count, 'model_name': model_name})
             else:
-                self.env['preview.dashboard'].create({
-                    'name': model_title,
-                    'model_name': model_name,
-                    field_name: total_count,
-                })
+                # Check if there is any record with the same field_name values to avoid duplication
+                existing_record_with_same_values = self.env['preview.dashboard'].search([
+                    (field_name, '=', total_count),
+                    ('model_name', '=', model_name)
+                ])
+                if not existing_record_with_same_values:
+                    self.env['preview.dashboard'].create({
+                        'name': model_title,
+                        'model_name': model_name,
+                        field_name: total_count,
+                    })
+                else:
+                    # If a record with the same values already exists, update its name
+                    for existing_record in existing_record_with_same_values:
+                        existing_record.write({'name': model_title})
         except Exception as e:
             # Handle exception gracefully, log it or print it
             print(f"Error while updating record for {model_title}: {e}")

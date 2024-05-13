@@ -367,10 +367,11 @@ class OnLinePurchases(models.Model):
                                                               <th>Attachment</th>
                                                         </tr>
                                                     </thead>
+                                                    <tbody>
+                                                    
                                                     """
         for rec in self.op_lines:
             html_content += f"""
-                                                    <tbody>
                                                           <tr>
                                                             <td class="website-link"><a href="{rec._website if rec._website else ''}">{rec._website if rec._website else ''}</a></td>
                                                             <td>{rec._items if rec._items else ''}</td>
@@ -381,10 +382,11 @@ class OnLinePurchases(models.Model):
                                                             <td>{rec._purpose if rec._purpose else ''}</td>
                                                             <td class="website-link">{rec.get_attachment_links_html()}</td>
                                                         </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                    """
 
         html_content += f"""
+        </tbody> 
+                                                </table>
                                                 <div class="button-container">
                                                             <a href="{self.generate_odoo_link()}" style="background-color: blue; margin-right: 20px; margin-top: 20px;" class="button">Edit Now</a>
                                                 </div>"""
@@ -542,10 +544,11 @@ class OnLinePurchases(models.Model):
                                                               <th>Attachment</th>
                                                         </tr>
                                                     </thead>
+                                                    <tbody>
+                                                    
                                                     """
         for rec in self.op_lines:
             html_content += f"""
-                                                    <tbody>
                                                           <tr>
                                                             <td class="website-link"><a href="{rec._website if rec._website else ''}">{rec._website if rec._website else ''}</a></td>
                                                             <td>{rec._items if rec._items else ''}</td>
@@ -556,10 +559,11 @@ class OnLinePurchases(models.Model):
                                                             <td>{rec._purpose if rec._purpose else ''}</td>
                                                             <td class="website-link">{rec.get_attachment_links_html()}</td>
                                                         </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                    """
 
         html_content += f"""
+        </tbody> 
+                                                </table>
                                                 <div class="button-container">
                                                             <a href="{self.generate_odoo_link()}" style="background-color: blue; margin-right: 20px; margin-top: 20px;" class="button">Dashboard</a>
                                                 </div>"""
@@ -1129,10 +1133,11 @@ class OnLinePurchases(models.Model):
                                                               <th>Attachment</th>
                                                         </tr>
                                                     </thead>
+                                                    <tbody>
+                                                    
                                                     """
         for rec in self.op_lines:
             html_content += f"""
-                                                    <tbody>
                                                           <tr>
                                                             <td class="website-link"><a href="{rec._website if rec._website else ''}">{rec._website if rec._website else ''}</a></td>
                                                             <td>{rec._items if rec._items else ''}</td>
@@ -1143,10 +1148,11 @@ class OnLinePurchases(models.Model):
                                                             <td>{rec._purpose if rec._purpose else ''}</td>
                                                             <td class="website-link">{rec.get_attachment_links_html()}</td>
                                                         </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                    """
 
         html_content += f"""
+        </tbody> 
+                                                </table>
                                                 <div class="button-container">
                                                     <a href='{approval_url}' style="background-color: green; margin-right: 20px; margin-top: 20px;" class="button">Approve</a>
                                                             <a href='{disapproval_url}' style="background-color: red; margin-right: 20px; margin-top: 20px;" class="button">Disapprove</a>
@@ -1321,10 +1327,11 @@ class OnLinePurchases(models.Model):
                                                               <th>Attachment</th>
                                                         </tr>
                                                     </thead>
+                                                    <tbody>
+                                                    
                                                     """
         for rec in self.op_lines:
             html_content += f"""
-                                                    <tbody>
                                                           <tr>
                                                             <td class="website-link"><a href="{rec._website if rec._website else ''}">{rec._website if rec._website else ''}</a></td>
                                                             <td>{rec._items if rec._items else ''}</td>
@@ -1335,10 +1342,11 @@ class OnLinePurchases(models.Model):
                                                             <td>{rec._purpose if rec._purpose else ''}</td>
                                                             <td class="website-link">{rec.get_attachment_links_html()}</td>
                                                         </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                    """
 
         html_content += f"""
+        </tbody> 
+                                                </table>
                                                 <div class="button-container">
                                                     <a href='{approval_url}' style="background-color: green; margin-right: 20px; margin-top: 20px;" class="button">Approve</a>
                                                             <a href='{disapproval_url}' style="background-color: red; margin-right: 20px; margin-top: 20px;" class="button">Disapprove</a>

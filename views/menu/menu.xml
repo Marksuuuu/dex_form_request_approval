@@ -7,9 +7,11 @@
             <field name="res_model">preview.dashboard</field>
             <field name="view_mode">kanban</field>
             <field name="help" type="html">
-                <p class="oe_view_nocontent_create">
-                    There is no examples click here to add new ModelTitle.
+                <p class="o_view_nocontent_smiling_face">
+                    Please create an Item's first
                 </p>
+
+
             </field>
         </record>
 
@@ -20,9 +22,11 @@
             <field name="view_mode">tree,form</field>
             <field name="context">{'group_by': 'approval_type'}</field>
             <field name="help" type="html">
-                <p class="oe_view_nocontent_create">
-                    There is no examples click here to add new ModelTitle.
+                <p class="o_view_nocontent_smiling_face">
+                    Please create an Item's first
                 </p>
+
+
             </field>
         </record>
 
@@ -32,9 +36,11 @@
             <field name="res_model">form.request.types</field>
             <field name="view_mode">tree</field>
             <field name="help" type="html">
-                <p class="oe_view_nocontent_create">
-                    There is no examples click here to add new ModelTitle.
+                <p class="o_view_nocontent_smiling_face">
+                    Please create an Item's first
                 </p>
+
+
             </field>
         </record>
 
@@ -44,9 +50,11 @@
             <field name="res_model">official.business.form</field>
             <field name="view_mode">tree,form</field>
             <field name="help" type="html">
-                <p class="oe_view_nocontent_create">
-                    There is no examples click here to add new ModelTitle.
+                <p class="o_view_nocontent_smiling_face">
+                    Please create an Item's first
                 </p>
+
+
             </field>
         </record>
 
@@ -56,9 +64,11 @@
             <field name="res_model">it.request.form</field>
             <field name="view_mode">tree,form</field>
             <field name="help" type="html">
-                <p class="oe_view_nocontent_create">
-                    There is no examples click here to add new ModelTitle.
+                <p class="o_view_nocontent_smiling_face">
+                    Please create an Item's first
                 </p>
+
+
             </field>
         </record>
 
@@ -68,9 +78,11 @@
             <field name="res_model">overtime.authorization.form</field>
             <field name="view_mode">tree,form</field>
             <field name="help" type="html">
-                <p class="oe_view_nocontent_create">
-                    There is no examples click here to add new ModelTitle.
+                <p class="o_view_nocontent_smiling_face">
+                    Please create an Item's first
                 </p>
+
+
             </field>
         </record>
 
@@ -80,9 +92,11 @@
             <field name="res_model">gasoline.allowance.form</field>
             <field name="view_mode">tree,form</field>
             <field name="help" type="html">
-                <p class="oe_view_nocontent_create">
-                    There is no examples click here to add new ModelTitle.
+                <p class="o_view_nocontent_smiling_face">
+                    Please create an Item's first
                 </p>
+
+
             </field>
         </record>
 
@@ -92,9 +106,11 @@
             <field name="res_model">on.line.purchases</field>
             <field name="view_mode">tree,form</field>
             <field name="help" type="html">
-                <p class="oe_view_nocontent_create">
-                    There is no examples click here to add new ModelTitle.
+                <p class="o_view_nocontent_smiling_face">
+                    Please create an Item's first
                 </p>
+
+
             </field>
         </record>
 
@@ -104,9 +120,11 @@
             <field name="res_model">request.for.cash.advance</field>
             <field name="view_mode">tree,form</field>
             <field name="help" type="html">
-                <p class="oe_view_nocontent_create">
-                    There is no examples click here to add new ModelTitle.
+                <p class="o_view_nocontent_smiling_face">
+                    Please create an Item's first
                 </p>
+
+
             </field>
         </record>
 
@@ -116,9 +134,11 @@
             <field name="res_model">grab.request.form</field>
             <field name="view_mode">tree,form</field>
             <field name="help" type="html">
-                <p class="oe_view_nocontent_create">
-                    There is no examples click here to add new ModelTitle.
+                <p class="o_view_nocontent_smiling_face">
+                    Please create an Item's first
                 </p>
+
+
             </field>
         </record>
 
@@ -128,9 +148,26 @@
             <field name="res_model">client.pick.up.permit</field>
             <field name="view_mode">tree,form</field>
             <field name="help" type="html">
-                <p class="oe_view_nocontent_create">
-                    There is no examples click here to add new ModelTitle.
+                <p class="o_view_nocontent_smiling_face">
+                    Please create an Item's first
                 </p>
+
+
+            </field>
+        </record>
+
+        <record id="payment_request_form_action_id" model="ir.actions.act_window">
+            <field name="name">Payment Request Form</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">payment.request.form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="domain">[('create_uid', '=', uid)]</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Please create an Item's first
+                </p>
+
+
             </field>
         </record>
 
@@ -172,6 +209,9 @@
 
         <menuitem id="client_pickup_permit_form_root_action_id" name="Client Pickup Permit Form"
                   parent="create_request_main_categ_id" action="client_pickup_permit_form_action_id" sequence="8"/>
+
+        <menuitem id="payment_request_form_root_action_id" name="Payment Request Form"
+                  parent="create_request_main_categ_id" action="payment_request_form_action_id" sequence="9"/>
 
         <!-- This Menu Item must have a parent and an action -->
         <menuitem id="approver_setup_action_menu_id" name="Approver Setup" parent="configuration_categ_id"

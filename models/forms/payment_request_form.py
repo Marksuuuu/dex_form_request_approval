@@ -2,7 +2,7 @@ import datetime
 import hashlib
 import re
 import smtplib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -11,16 +11,17 @@ from odoo.exceptions import UserError
 from odoo.tools import formataddr
 
 
-class GrabRequestForm(models.Model):
-    _name = 'grab.request.form'
+class PaymentRequestForm(models.Model):
+    _name = 'payment.request.form'
     _inherit = 'approval.fields.plugins'
 
-    grf_lines = fields.One2many('grab.request.form.lines', 'grf_connection', string='Grab Request Form Lines')
+    prf_lines = fields.One2many('payment.request.form.lines', 'prf_connection', string='Payment Request Form Lines')
     approver_id = fields.Many2one('hr.employee', string="Approver", domain=lambda self: self.get_approver_domain(),
                                   store=True)
     approver_count = fields.Integer(compute='_compute_approver_count', store=True)
     check_status = fields.Char(compute='compute_check_status', store=True)
-    supplier_id = fields.Many2one('res.partner', string="Supplier", required=True)
+    generate_bill = fields.Char(compute='compute_generate_bill', store=True)
+    # supplier_id = fields.Many2one('res.partner', string="Supplier", required=True)
     invoice_or_ref = fields.Char(string='Invoice or Reference')
 
     approved_by = fields.Many2one('res.users', string="Approved By")
@@ -28,15 +29,398 @@ class GrabRequestForm(models.Model):
 
     is_approver = fields.Boolean(compute="compute_approver")
 
+    sales_channel = fields.Many2one('crm.team', string="Sales Team", tracking=True)
+    mode_of_disbursement = fields.Selection([('cash', 'Cash'), ('check', 'Check')], string="Mode of Disbursement",
+                                            tracking=True)
+    payee_supplier = fields.Char(string="Payee/Supplier", required=True, tracking=True)
+    bill_number = fields.Many2one('account.move', string="Bill Number", readonly=True, tracking=True)
+    parameter_match = fields.Boolean(string="Parameter Match", compute='_compute_parameter_match')
+    flag_counter = fields.Boolean(default=False)
+
+    invoice_payment_term_id = fields.Many2one('account.payment.term', string='Payment Terms',
+                                              domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",
+                                              readonly=True, states={'draft': [('readonly', False)]}, tracking=True)
+
+    invoice_date_due = fields.Date(string='Due Date', readonly=True, index=True, copy=False,
+                                   states={'draft': [('readonly', False)]}, tracking=True)
+    is_created_bill = fields.Boolean(default=False, tracking=True)
+    is_bill_created = fields.Many2one('account.move', tracking=True, string="Bill Created")
+
+    total_amm = fields.Float(string="Total Amount",
+                             compute='_compute_total_amm', store=True)
+
+    person_who_billed = fields.Many2one('res.users', string='Person Who Billed')
+
+    compute_total_count = fields.Integer(compute='get_total_in_bills', store=False)
+
+    compute_currency_id = fields.Many2one('res.currency', string='Currency',
+                                          compute='_compute_default_currency', store=False, readonly=False)
+
+    currency_id = fields.Many2one('res.currency', string='Currency', readonly=False)
+
+    def open_form_view(self):
+        # Replace 'module_name.xml_id_of_form_view' with the XML ID of your form view
+        view_id = self.env.ref('account.view_move_form').id
+        action = {
+            'name': 'Form View',
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.move',
+            'views': [(view_id, 'form')],
+            'target': 'current',
+            'res_id': self.id,
+            'context': {
+                'domain': [('payment_request_ids', '=', self.id)],
+                # Add your domain here
+            }
+        }
+        return action
+
+    @api.depends('company_id', 'currency_id', 'compute_currency_id')
+    def _compute_default_currency(self):
+        for record in self:
+            record.currency_id = record.company_id.currency_id
+            record.compute_currency_id = record.company_id.currency_id
+
+    @api.depends('compute_total_count')
+    def get_total_in_bills(self):
+        for request in self:
+            bills = self.env['account.move'].search([('payment_request_ids', '=', request.id)])
+            request.compute_total_count = len(bills)
+
+    # company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
+
+    @api.depends('prf_lines._amount')
+    def _compute_total_amm(self):
+        for record in self:
+            total_amm = 0.0  # Initialize total_amm as float
+            for line in record.prf_lines:
+                try:
+                    amount = float(line._amount)  # Try converting _amount to float
+                except ValueError:
+                    amount = 0.0  # Set amount to 0.0 if conversion fails
+                total_amm += amount
+            record.total_amm = total_amm
+
+    def generate_bill(self):
+        data = {
+            'id': self.id,
+            'payee': self.payee_supplier,
+            'mode_of_disbursement': self.mode_of_disbursement,
+            'invoice_date_due': self.invoice_date_due,
+            'invoice_payment_term_id': self.invoice_payment_term_id.id,
+            'sales_channel': self.sales_channel.id,
+            'invoice_date': date.today(),
+            'date': date.today(),
+            'ref': self.name,
+            'currency_id': self.currency_id,
+            'invoice_user_id': self.env.user.id,
+            'invoice_state': 'in_invoice'
+        }
+        try:
+            self.write({'is_created_bill': True, 'person_who_billed': self.env.user.id})
+            new_move_id = self._account_move(data)
+            print(new_move_id)
+            # Fetch data from One2Many field here
+            data_from_one2many = self.prf_lines
+            search_data = self.env['account.move'].search([('id', '=', data_from_one2many.id)])
+
+            # Pass the fetched data to _account_move_line()
+            self._account_move_line(new_move_id, data_from_one2many, search_data)
+        except Exception as e:
+            print(f"Error creating record: {e}")
+            # Rollback any previous changes if an error occurs
+            self.write({'is_created_bill': False})
+
+    def _account_move(self, data):
+        try:
+            new_record = self.env['account.move'].create({
+                'name': '/',
+                'invoice_date': data['invoice_date'],
+                'date': data['date'],
+                'invoice_user_id': data['invoice_user_id'],
+                'mode_of_disbursement': data['mode_of_disbursement'],
+                'ref': data['ref'],
+                'type': data['invoice_state'],
+                'payment_request_ids': data['id'],
+                'sales_channel': data['sales_channel'],
+                'currency_id': data['currency_id'],
+                'invoice_payment_term_id': data['invoice_payment_term_id'],
+                'invoice_date_due': data['invoice_date_due'],
+            })
+            self._account_move_connection(new_record)
+            return new_record.id
+        except Exception as e:
+            raise ValueError(f"Error creating account move: {e}")
+
+    def _account_move_connection(self, move_record):
+        try:
+            self.is_bill_created = move_record.id
+        except Exception as e:
+            raise ValueError(f"Error connecting account move: {e}")
+
+    def _account_move_line(self, move_record, data, search_data):
+        try:
+            move_line_ids = []  # Initialize an empty list to store move line IDs
+            for record in data:
+                print(move_record)
+                new_record = self.env['account.move.line'].create({
+                    'move_id': move_record,
+                    'date': search_data.date,
+                    'parent_state': search_data.state,
+                    'journal_id': 1,
+                    'ref': search_data.ref,
+                    'name': record._particulars,  # Assuming `_particulars` is the name field in account move line
+                    'price_unit': float(record._amount),  # Assuming `_amount` is the price field in account move line
+                    'account_id': 1,
+                    # Add other fields accordingly
+                })
+                move_line_ids.append(new_record.id)  # Append the ID of the newly created move line
+            # Return the list of move line IDs
+            return move_line_ids
+        except Exception as e:
+            raise ValueError(f"Error creating account move line: {e}")
+
+    @api.depends('department_id.is_need_request_handlers')
+    def checking_if_need_request_are_true(self):
+        for rec in self:
+            if rec.department_id.is_need_request_handlers:
+                rec.send_to_rep(self.get_rep_email())
+            else:
+                print('else')
+                pass
+
+    def send_to_rep(self, recipient_list):
+        print('recipient_list', recipient_list)
+        conn = self.main_connection()
+        sender = conn['sender']
+        host = conn['host']
+        port = conn['port']
+        username = conn['username']
+        password = conn['password']
+
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        token = self.generate_token()
+
+        approval_url = "{}/dex_form_request_approval/request/prf_approve/{}".format(base_url, token)
+        disapproval_url = "{}/dex_form_request_approval/request/prf_disapprove/{}".format(base_url, token)
+
+        token = self.generate_token()
+        self.write({'approval_link': token})
+
+        msg = MIMEMultipart()
+        msg['From'] = formataddr(('Odoo Mailer', sender))
+
+        msg['To'] = ''.join(recipient_list)
+        msg[
+            'Subject'] = f"{re.sub(r'[-_]', ' ', self.form_request_type).title() if self.approval_status else ''} Request has been {re.sub(r'[-_]', ' ', self.approval_status).title() if self.approval_status else ''} [{self.name}], Please Process"
+        html_content = """
+                                    <!DOCTYPE html>
+                                        <html lang="en">
+                                        <head>
+                                        <meta charset="UTF-8">
+                                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                        <title>Invoice Template</title>
+                                        <style>
+                                            body {
+                                                font-family: Arial, sans-serif;
+                                                margin: 0;
+                                                padding: 20px;
+                                            }
+                                            .container {
+                                                max-width: 800px;
+                                                margin: 0 auto;
+                                                border: 1px solid #ccc;
+                                                padding: 20px;
+                                                position: relative;
+                                            }
+                                            .header {
+                                                text-align: center;
+                                                margin-bottom: 20px;
+                                            }
+                                            .invoice-number {
+                                                position: absolute;
+                                                top: 20px;
+                                                right: 20px;
+                                            }
+                                            table {
+                                                width: 100%;
+                                                border-collapse: collapse;
+                                                margin-top: 20px;
+                                            }
+                                            th, td {
+                                                border: 1px solid #ddd;
+                                                padding: 8px;
+                                                text-align: left;
+                                            }
+                                            th {
+                                                background-color: #f2f2f2;
+                                            }
+                                            .button-container {
+                                                text-align: center;
+                                                margin-top: 20px;
+                                            }
+                                            .button {
+                                                padding: 10px 20px;
+                                                margin: 0 10px;
+                                                border: none;
+                                                border-radius: 5px;
+                                                cursor: pointer;
+                                                font-size: 16px;
+                                                color: white;
+                                                transition: background-color 0.3s;
+                                            }
+                                            .button:hover {
+                                                background-color: grey;
+                                            }
+                                            /* Apply ellipsis to links */
+                                            td.website-link {
+                                                max-width: 50px; /* Adjust the maximum width as needed */
+                                                overflow: hidden;
+                                                text-overflow: ellipsis;
+                                                white-space: nowrap;
+                                            }
+
+                                        </style>
+                                        </head>
+                                        <body> """
+
+        html_content += f""" 
+                                            <div class="container">
+                                                <div class="header">
+                                                    <h2>{re.sub(r'[-_]', ' ', self.form_request_type).title() if self.approval_status else ''} Request</h2>
+                                                    <p>Date: {self.create_date.strftime("%m-%d-%y")}</p>
+                                                    <p>Request by: {self.requesters_id.name}</p>
+                                                </div>
+                                                <div class="invoice-number" style='text-align: center'>
+                                                    <p>Serial Number: </br> {self.name}</p>
+                                                </div>
+                                                <div class="item-details">
+                                                    <h3>Item Details</h3>
+                                                    <p>Status: {'To Approve' if self.approval_status == 'draft' else re.sub(r'[-_]', ' ', self.approval_status).title()}</p>
+                                                    <p>Item Requested: {re.sub(r'[-_]', ' ', self.form_request_type).title() if self.approval_status else ''}</p>
+                                                    <p>{re.sub(r'[-_]', ' ', self.approval_status).title() if self.approval_status else '' if self.approval_status == 'approved' else ''} by: {self.env.user.name if self.env.user else ''}</p>
+                                                    <p>Mode of disbursement: {self.mode_of_disbursement}</p>
+                                                    <p>{'Payee/Supplier: ' + str(self.payee_supplier) if self.payee_supplier else ''}</p>
+                                                    <p>{'Due Date/ Date Needed by: ' + str(self.invoice_payment_term_id.name) if self.invoice_payment_term_id else ''}</p>
+                                                    <p>{'Invoice Date Due: ' + str(self.invoice_date_due) if self.invoice_date_due else ''}</p>
+
+                                                </div>"""
+
+        html_content += """
+                                                        <table>
+                                                            <thead>
+                                                                 <tr>
+                                                                      <th>Particulars</th>
+                                                                      <th>Amount</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+
+                                                            """
+        for rec in self.prf_lines:
+            html_content += f"""
+                                                                  <tr>
+                                                                    <td>{rec._particulars if rec._particulars else ''}</td>
+                                                                    <td>{rec._amount if rec._amount else ''}</td>
+                                                                </tr>
+                                                            """
+
+        html_content += f"""
+        </tbody> 
+                                                </table>
+                                                <div class="button-container">
+                                                    <p>Total : {self.total_amm}</p>
+                                                </div>
+                                                <div class="button-container">
+                                                            <a href="{self.generate_odoo_link()}" style="background-color: blue; margin-right: 20px; margin-top: 20px;" class="button">Edit Now</a>
+                                                </div>"""
+
+        html_content += """
+                                            </div>
+                                        </body>
+                                        </html>
+                                """
+
+        msg.attach(MIMEText(html_content, 'html'))
+
+        try:
+            smtpObj = smtplib.SMTP(host, port)
+            smtpObj.login(username, password)
+            smtpObj.sendmail(sender, recipient_list, msg.as_string())
+
+            msg = "Successfully sent email"
+            return {
+                'success': {
+                    'title': 'Successfully email sent!',
+                    'message': f'{msg}'}
+            }
+        except Exception as e:
+            print(e)
+            msg = f"Error: Unable to send email: {str(e)}"
+            return {
+                'warning': {
+                    'title': 'Error: Unable to send email!',
+                    'message': f'{msg}'}
+            }
+
+    def get_rep_email(self):
+        work_emails = []  # Initialize an empty list to store work emails
+        for record in self:
+            # Assuming record is related to a student or contains necessary information
+            # to find the related student record
+
+            # Retrieve the student record or department record
+            student_record = record.department_id  # Replace department_id with the appropriate field
+
+            # Assuming requests_handlers is a one-to-many or many-to-many field on the student record
+            courses = student_record.requests_handlers  # Accessing the courses of the student
+
+            # Assuming user_id is a field on hr.employee model
+            search_for_users = self.env['hr.employee'].search([('user_id', 'in', courses.mapped('id'))])
+
+            # Loop through all matching HR employees and append their work emails to the list
+            for user in search_for_users:
+                work_emails.append(user.work_email)
+
+        # Return the list of work emails
+        print(work_emails)
+        return work_emails
+
+    @api.depends('parameter_match', 'flag_counter')
+    def _compute_parameter_match(self):
+        for record in self:
+            # Retrieve the configuration parameter value
+            # Assuming you have a student record with id student_id
+            student_record = record.department_id
+
+            # Accessing the courses of the student
+            courses = student_record.requests_handlers
+
+            # Initialize flag_counter and parameter_match to False
+            record.flag_counter = False
+            record.parameter_match = False
+
+            # Get current user data
+            current_user = self.env.user
+
+            # Iterating through the courses
+            for course in courses:
+                # Compare parameter value with current user's id
+                if int(course.id) == int(current_user.id):
+                    record.flag_counter = True
+                    print(record.flag_counter)
+                    record.parameter_match = True
+                    break  # No need to continue if match is found
+
     def _get_department_domain(self):
-        approval_types = self.env['approver.setup'].search([('approval_type', '=', 'grab_request')])
+        approval_types = self.env['approver.setup'].search([('approval_type', '=', 'payment_request')])
         return [('id', 'in', approval_types.ids)]
 
     @api.onchange('requesters_id')
     def _onchange_requesters_id(self):
         if self.requesters_id and self.requesters_id.department_id:
             department_name = self.requesters_id.department_id.name
-            approval_type = 'grab_request'
+            approval_type = 'payment_request'
 
             # Search for the approver.setup record matching department name and approval type
             approver_setup = self.env['approver.setup'].search([
@@ -53,20 +437,20 @@ class GrabRequestForm(models.Model):
         return self.env.ref('dex_form_request_approval.gaf_report_id').report_action(self)
 
     def _onchange_one2many_field(self):
-        if not self.grf_lines:
+        if not self.prf_lines:
             raise UserError("Please note that data must be provided in the required fields to proceed.")
 
     @api.model
     def create(self, vals):
         if vals.get('name', '/') == '/':
-            vals['name'] = self.env['ir.sequence'].next_by_code('create.sequence.form.sequence.grf') or '/'
+            vals['name'] = self.env['ir.sequence'].next_by_code('create.sequence.form.sequence.prf') or '/'
 
-        record = super(GrabRequestForm, self).create(vals)
+        record = super(PaymentRequestForm, self).create(vals)
         # record._onchange_one2many_field()
         return record
 
     def write(self, values):
-        res = super(GrabRequestForm, self).write(values)
+        res = super(PaymentRequestForm, self).write(values)
         # self._onchange_one2many_field()
         return res
 
@@ -85,7 +469,7 @@ class GrabRequestForm(models.Model):
         # Approval Dashboard Link Section
         approval_base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         approval_action = self.env['ir.actions.act_window'].search(
-            [('name', '=', 'Grab Request Form')], limit=1)
+            [('name', '=', 'Payment Request Form')], limit=1)
         action_id = approval_action.id
 
         odoo_params = {
@@ -96,7 +480,7 @@ class GrabRequestForm(models.Model):
         approval_list_view_url = f"{approval_base_url}/web?debug=0#{query_string}"
 
         # Generate Odoo Link Section
-        odoo_action = self.env['ir.actions.act_window'].search([('res_model', '=', 'grab.request.form')], limit=1)
+        odoo_action = self.env['ir.actions.act_window'].search([('res_model', '=', 'payment.request.form')], limit=1)
         odoo_base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
 
         odoo_result = re.sub(r'\((.*?)\)', '', str(odoo_action)).replace(',', '')
@@ -107,7 +491,7 @@ class GrabRequestForm(models.Model):
         odoo_params = {
             "id": self.id,
             "action": odoo_action.id,
-            "model": "grab.request.form",
+            "model": "payment.request.form",
             "view_type": "form",
             "cids": 1,
             "menu_id": odoo_menu.id
@@ -136,6 +520,7 @@ class GrabRequestForm(models.Model):
                 print('asdasd')
                 rec.get_approvers_email()
                 rec.submit_to_final_approver()
+                rec.checking_if_need_request_are_true()
             elif rec.approval_status == 'disapprove':
                 rec.get_approvers_email()
                 rec.submit_for_disapproval()
@@ -188,8 +573,8 @@ class GrabRequestForm(models.Model):
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         token = self.generate_token()
 
-        approval_url = "{}/dex_form_request_approval/request/cpp_approve/{}".format(base_url, token)
-        disapproval_url = "{}/dex_form_request_approval/request/cpp_disapprove/{}".format(base_url, token)
+        approval_url = "{}/dex_form_request_approval/request/prf_approve/{}".format(base_url, token)
+        disapproval_url = "{}/dex_form_request_approval/request/prf_disapprove/{}".format(base_url, token)
 
         token = self.generate_token()
         self.write({'approval_link': token})
@@ -280,30 +665,38 @@ class GrabRequestForm(models.Model):
                                             <p>Item Requested: {re.sub(r'[-_]', ' ', self.form_request_type).title() if self.approval_status else ''}</p>
                                             <p>Reason for {re.sub(r'[-_]', ' ', self.approval_status).title() if self.approval_status else '' if self.approval_status == 'disapprove' else (re.sub(r'[-_]', ' ', self.approval_status).title() if self.approval_status else '' if self.approval_status == 'cancel' else '')}: N/A</p>
                                             <p>{re.sub(r'[-_]', ' ', self.approval_status).title() if self.approval_status else '' if self.approval_status == 'approved' else ''} by: {self.env.user.name if self.env.user else ''}</p>
+                                            <p>Mode of disbursement: {self.mode_of_disbursement}</p>
+                                            <p>{'Payee/Supplier: ' + str(self.payee_supplier) if self.payee_supplier else ''}</p>
+                                            <p>{'Due Date/ Date Needed by: ' + str(self.invoice_payment_term_id.name) if self.invoice_payment_term_id else ''}</p>
+                                            <p>{'Invoice Date Due: ' + str(self.invoice_date_due) if self.invoice_date_due else ''}</p>
                                         </div>"""
 
         html_content += """
-                                        <table>
-                                            <thead>
-                                                <tr>
-                                                    <th>Amount</th>
-                                                    <th>Purpose</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                            
-                                            """
-        for rec in self.grf_lines:
+                                                        <table>
+                                                            <thead>
+                                                                 <tr>
+                                                                    
+                                                                      <th>Particulars</th>
+                                                                      <th>Amount</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+
+                                                            """
+        for rec in self.prf_lines:
             html_content += f"""
-                                                  <tr>
-                                                        <td>{rec._amount if rec._amount else ''}</td>
-                                                        <td>{rec._purpose if rec._purpose else ''}</td>
-                                                  </tr>
-                                            """
+                                                                  <tr>
+                                                                    <td>{rec._particulars if rec._particulars else ''}</td>
+                                                                    <td>{rec._amount if rec._amount else ''}</td>
+                                                                </tr>
+                                                            """
 
         html_content += f"""
                                     </tbody> 
                                         </table>
+                                        <div class="button-container">
+                                                    <p>Total : {self.total_amm}</p>
+                                                </div>
                                         <div class="button-container">
                                             <a href="{self.generate_odoo_link()}" style="background-color: blue" class="button">Dashboard</a>
                                         </div>"""
@@ -359,7 +752,7 @@ class GrabRequestForm(models.Model):
 
         # Remove duplicates from recipient_list
         recipient_list = list(set(recipient_list + all_list))  # Combine and then create set
-        print(recipient_list)
+        print(recipient_list, ' go here')
         if recipient_list:
             self.send_to_final_approver_email(recipient_list)
         else:
@@ -381,8 +774,8 @@ class GrabRequestForm(models.Model):
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         token = self.generate_token()
 
-        approval_url = "{}/dex_form_request_approval/request/grf_approve/{}".format(base_url, token)
-        disapproval_url = "{}/dex_form_request_approval/request/grf_disapprove/{}".format(base_url, token)
+        approval_url = "{}/dex_form_request_approval/request/prf_approve/{}".format(base_url, token)
+        disapproval_url = "{}/dex_form_request_approval/request/prf_disapprove/{}".format(base_url, token)
 
         token = self.generate_token()
         self.write({'approval_link': token})
@@ -472,31 +865,38 @@ class GrabRequestForm(models.Model):
                                             <p>Status: {'To Approve' if self.approval_status == 'draft' else re.sub(r'[-_]', ' ', self.approval_status).title()}</p>
                                             <p>Item Requested: {re.sub(r'[-_]', ' ', self.form_request_type).title() if self.approval_status else ''}</p>
                                             <p>Approved by: {self.env.user.name if self.env.user else ''}</p>
+                                            <p>Mode of disbursement: {self.mode_of_disbursement}</p>
+                                            <p>{'Payee/Supplier: ' + str(self.payee_supplier) if self.payee_supplier else ''}</p>
+                                            <p>{'Due Date/ Date Needed by: ' + str(self.invoice_payment_term_id.name) if self.invoice_payment_term_id else ''}</p>
+                                            <p>{'Invoice Date Due: ' + str(self.invoice_date_due) if self.invoice_date_due else ''}</p>
                                         </div>"""
 
         html_content += """
-                                        <table>
-                                            <thead>
-                                                <tr>
-                                                    <th>Amount</th>
-                                                    <th>Purpose</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                            """
-        for rec in self.grf_lines:
-            html_content += f"""
-                                            
-                                                  <tr>
-                                                      <td>{rec._purpose if rec._purpose else ''}</td>
-                                                      <td>{rec._amount if rec._amount else ''}</td>
-                                                  </tr>
-                                            """
+                                                        <table>
+                                                            <thead>
+                                                                 <tr>
+                                                                    
+                                                                      <th>Particulars</th>
+                                                                      <th>Amount</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
 
+                                                            """
+        for rec in self.prf_lines:
+            html_content += f"""
+                                                                  <tr>
+                                                                    <td>{rec._particulars if rec._particulars else ''}</td>
+                                                                    <td>{rec._amount if rec._amount else ''}</td>
+                                                                </tr>
+                                                            """
 
         html_content += f"""
                                     </tbody> 
                                         </table>
+                                        <div class="button-container">
+                                                    <p>Total : {self.total_amm}</p>
+                                                </div>
                                         <div class="button-container">
                                             <a href="{self.generate_odoo_link()}" style="background-color: blue" class="button">Dashboard</a>
                                         </div>"""
@@ -521,6 +921,7 @@ class GrabRequestForm(models.Model):
                     'message': f'{msg}'}
             }
         except Exception as e:
+            print(e)
             msg = f"Error: Unable to send email: {str(e)}"
             return {
                 'warning': {
@@ -659,7 +1060,7 @@ class GrabRequestForm(models.Model):
 
     def generate_odoo_link(self):
         # Generate Odoo Link Section
-        action = self.env['ir.actions.act_window'].search([('res_model', '=', 'grab.request.form')], limit=1)
+        action = self.env['ir.actions.act_window'].search([('res_model', '=', 'payment.request.form')], limit=1)
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
 
         result = re.sub(r'\((.*?)\)', '', str(action)).replace(',', '')
@@ -670,7 +1071,7 @@ class GrabRequestForm(models.Model):
         params = {
             "id": self.id,
             "action": action.id,
-            "model": "grab.request.form",
+            "model": "payment.request.form",
             "view_type": "form",
             "cids": 1,
             "menu_id": menu.id
@@ -684,7 +1085,7 @@ class GrabRequestForm(models.Model):
 
         approval_base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         approval_action = self.env['ir.actions.act_window'].search(
-            [('name', '=', 'Grab Request Form')], limit=1)
+            [('name', '=', 'Payment Request Form')], limit=1)
         action_id = approval_action.id
         odoo_params = {
             "action": action_id,
@@ -694,7 +1095,7 @@ class GrabRequestForm(models.Model):
         approval_list_view_url = f"{approval_base_url}/web?debug=0#{query_string}"
 
         # Generate Odoo Link Section
-        odoo_action = self.env['ir.actions.act_window'].search([('res_model', '=', 'grab.request.form')], limit=1)
+        odoo_action = self.env['ir.actions.act_window'].search([('res_model', '=', 'payment.request.form')], limit=1)
         odoo_base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
 
         odoo_result = re.sub(r'\((.*?)\)', '', str(odoo_action)).replace(',', '')
@@ -705,7 +1106,7 @@ class GrabRequestForm(models.Model):
         odoo_params = {
             "id": self.id,
             "action": odoo_action.id,
-            "model": "grab.request.form",
+            "model": "payment.request.form",
             "view_type": "form",
             "cids": 1,
             "menu_id": odoo_menu.id
@@ -748,8 +1149,8 @@ class GrabRequestForm(models.Model):
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         token = self.generate_token()
 
-        approval_url = "{}/dex_form_request_approval/request/grf_approve/{}".format(base_url, token)
-        disapproval_url = "{}/dex_form_request_approval/request/grf_disapprove/{}".format(base_url, token)
+        approval_url = "{}/dex_form_request_approval/request/prf_approve/{}".format(base_url, token)
+        disapproval_url = "{}/dex_form_request_approval/request/prf_disapprove/{}".format(base_url, token)
 
         self.write({'approval_link': token})
         print(self.approval_link)
@@ -837,30 +1238,38 @@ class GrabRequestForm(models.Model):
                                                     <p>Status: {'To Approve' if self.approval_status == 'draft' else re.sub(r'[-_]', ' ', self.approval_status).title()}</p>
                                                     <p>Item Requested: {re.sub(r'[-_]', ' ', self.form_request_type).title() if self.approval_status else ''}</p>
                                                     <p>Approved by: {self.env.user.name if self.env.user else ''}</p>
+                                                    <p>Mode of disbursement: {self.mode_of_disbursement}</p>
+                                                    <p>{'Payee/Supplier: ' + str(self.payee_supplier) if self.payee_supplier else ''}</p>
+                                                    <p>{'Due Date/ Date Needed by: ' + str(self.invoice_payment_term_id.name) if self.invoice_payment_term_id else ''}</p>
+                                                    <p>{'Invoice Date Due: ' + str(self.invoice_date_due) if self.invoice_date_due else ''}</p>
                                                 </div>"""
 
         html_content += """
-                                                <table>
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Amount</th>
-                                                            <th>Purpose</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                    """
-        for rec in self.grf_lines:
+                                                        <table>
+                                                            <thead>
+                                                                 <tr>
+                                                                    
+                                                                      <th>Particulars</th>
+                                                                      <th>Amount</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+
+                                                            """
+        for rec in self.prf_lines:
             html_content += f"""
-                                                    
-                                                          <tr>
-                                                              <td>{rec._purpose if rec._purpose else ''}</td>
-                                                              <td>{rec._amount if rec._amount else ''}</td>
-                                                          </tr>
-                                                    """
+                                                                  <tr>
+                                                                    <td>{rec._particulars if rec._particulars else ''}</td>
+                                                                    <td>{rec._amount if rec._amount else ''}</td>
+                                                                </tr>
+                                                            """
 
         html_content += f"""
                                             </tbody> 
                                                 </table>
+                                                <div class="button-container">
+                                                    <p>Total : {self.total_amm}</p>
+                                                </div>
                                                 <div class="button-container">
                                                     <a href='{approval_url}' style="background-color: green;" class="button">Approve</a>
                                                     <a href='{disapproval_url}' style="background-color: red" class="button">Disapprove</a>
@@ -905,8 +1314,8 @@ class GrabRequestForm(models.Model):
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         token = self.generate_token()
 
-        approval_url = "{}/dex_form_request_approval/request/grf_approve/{}".format(base_url, token)
-        disapproval_url = "{}/dex_form_request_approval/request/grf_disapprove/{}".format(base_url, token)
+        approval_url = "{}/dex_form_request_approval/request/prf_approve/{}".format(base_url, token)
+        disapproval_url = "{}/dex_form_request_approval/request/prf_disapprove/{}".format(base_url, token)
 
         self.write({'approval_link': token})
         print(self.approval_link)
@@ -992,29 +1401,37 @@ class GrabRequestForm(models.Model):
                                                 <div class="item-details">
                                                     <h3>Item Details</h3>
                                                     <p>Status: {'To Approve' if self.approval_status == 'draft' else re.sub(r'[-_]', ' ', self.approval_status).title()}</p>
-                                                    <p>Item Requested: {re.sub(r'[-_]', ' ', self.form_request_type).title() if self.approval_status else ''}</p>                                                </div>"""
+                                                    <p>Item Requested: {re.sub(r'[-_]', ' ', self.form_request_type).title() if self.approval_status else ''}</p>  
+                                                    <p>Mode of disbursement: {self.mode_of_disbursement}</p>
+                                                    <p>{'Payee/Supplier: ' + str(self.payee_supplier) if self.payee_supplier else ''}</p>
+                                                    <p>{'Due Date/ Date Needed by: ' + str(self.invoice_payment_term_id.name) if self.invoice_payment_term_id else ''}</p>
+                                                    <p>{'Invoice Date Due: ' + str(self.invoice_date_due) if self.invoice_date_due else ''}</p></div>"""
 
         html_content += """
-                                                <table>
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Amount</th>
-                                                            <th>Purpose</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                    
-                                                    """
-        for rec in self.grf_lines:
+                                                        <table>
+                                                            <thead>
+                                                                 <tr>
+                                                                    
+                                                                      <th>Particulars</th>
+                                                                      <th>Amount</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+
+                                                            """
+        for rec in self.prf_lines:
             html_content += f"""
-                                                          <tr>
-                                                              <td>{rec._purpose if rec._purpose else ''}</td>
-                                                              <td>{rec._amount if rec._amount else ''}</td>
-                                                          </tr>
-                                                    """
+                                                                  <tr>
+                                                                    <td>{rec._particulars if rec._particulars else ''}</td>
+                                                                    <td>{rec._amount if rec._amount else ''}</td>
+                                                                </tr>
+                                                            """
         html_content += f"""
                                         </tbody> 
                                                 </table>
+                                                <div class="button-container">
+                                                    <p>Total : {self.total_amm}</p>
+                                                </div>
                                                 <div class="button-container">
                                                     <a href='{approval_url}' style="background-color: green;" class="button">Approve</a>
                                                     <a href='{disapproval_url}' style="background-color: red" class="button">Disapprove</a>
@@ -1049,7 +1466,7 @@ class GrabRequestForm(models.Model):
         # Approval Dashboard Link Section
         approval_base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         approval_action = self.env['ir.actions.act_window'].search(
-            [('name', '=', 'Grab Request Form')], limit=1)
+            [('name', '=', 'Payment Request Form')], limit=1)
         action_id = approval_action.id
 
         odoo_params = {
@@ -1188,13 +1605,20 @@ class GrabRequestForm(models.Model):
 
             return {'domain': {'approver_id': domain}}
 
+    def search(self, args, offset=0, limit=None, order=None, count=False):
+        if self.env.user.has_group('dex_form_request_approval.group_from_request_user') and not self.env.user.has_group(
+                'dex_form_request_approval.group_from_request_manager'):
+            if isinstance(args, list):
+                args += [('create_uid', '=', self.env.user.id)]
+            else:
+                args = [('create_uid', '=', self.env.user.id)]
+        return super().search(args, offset, limit, order, count)
 
-class GrabRequestFormLines(models.Model):
-    _name = 'grab.request.form.lines'
-    _description = 'Online Purchases Lines'
 
-    grf_connection = fields.Many2one('grab.request.form', string='Connection')
-    _from = fields.Datetime(string='From', default=lambda self: datetime.now())
-    _to = fields.Datetime(string='To')
-    _amount = fields.Char(string='Amount')
-    _purpose = fields.Char(string='Purpose')
+class PaymentRequestFormLines(models.Model):
+    _name = 'payment.request.form.lines'
+    _description = 'Payment Request Form Lines'
+
+    prf_connection = fields.Many2one('payment.request.form', string='Connection')
+    _amount = fields.Float(string='Amount')
+    _particulars = fields.Char(string='Particulars')

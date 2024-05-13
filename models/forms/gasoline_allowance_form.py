@@ -330,21 +330,22 @@ class GasolineAllowanceForm(models.Model):
                                                     <th>Estimated Km</th>
                                                 </tr>
                                             </thead>
+                                            
+                                            <tbody>
                                             """
         for rec in self.gaf_lines:
             html_content += f"""
-                                            <tbody>
                                                   <tr>
                                                       <td>{rec._from if rec._from else ''}</td>
                                                       <td>{rec._to if rec._to else ''}</td>
                                                       <td>{rec._date.strftime("%m-%d-%y") if rec._date else ''}</td>
                                                       <td>{rec._purpose if rec._purpose else ''}</td>
                                                       <td>{rec._estimated_km if rec._estimated_km else ''}</td>
-                                                  </tr>
-                                            </tbody> 
-                                        </table>"""
+                                                  </tr>"""
 
         html_content += f"""
+                                </tbody> 
+                                        </table>
                                                 <div class="button-container">
                                                     <p>Rate per KM:  {self.rate_per_km}</p>
                                                     <p>Total KM: {self.total_km}</p>
@@ -534,10 +535,11 @@ class GasolineAllowanceForm(models.Model):
                                             <th>Estimated Km</th>
                                         </tr>
                                     </thead>
+                                    <tbody>
                                     """
         for rec in self.gaf_lines:
             html_content += f"""
-                                    <tbody>
+                                    
                                           <tr>
                                               <td>{rec._from if rec._from else ''}</td>
                                               <td>{rec._to if rec._to else ''}</td>
@@ -545,10 +547,11 @@ class GasolineAllowanceForm(models.Model):
                                               <td>{rec._purpose if rec._purpose else ''}</td>
                                               <td>{rec._estimated_km if rec._estimated_km else ''}</td>
                                           </tr>
-                                    </tbody> 
-                                </table>"""
+                                    """
 
         html_content += f"""
+                                </tbody> 
+                                </table>
                                         <div class="button-container">
                                             <p>Rate per KM:  {self.rate_per_km}</p>
                                             <p>Total KM: {self.total_km}</p>

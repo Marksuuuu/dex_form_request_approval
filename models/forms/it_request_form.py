@@ -476,17 +476,19 @@ class ItRequestForm(models.Model):
                                                             <th>Purpose</th>
                                                         </tr>
                                                     </thead>
+                                                    <tbody>
+                                                    
                                                     """
         for rec in self.itf_lines:
             html_content += f"""
-                                                    <tbody>
                                                           <tr>
                                                               <td>{rec._purpose if rec._purpose else ''}</td>
                                                           </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                    """
 
         html_content += f"""
+        </tbody> 
+                                                </table>
                                                 <div class="button-container">
                                                     <a href="{self.generate_odoo_link()}" style="background-color: blue" class="button">Dashboard</a>
                                                 </div>"""
@@ -824,17 +826,19 @@ class ItRequestForm(models.Model):
                                                             <th>Purpose</th>
                                                         </tr>
                                                     </thead>
+                                                    <tbody>
+                                                    
                                                     """
         for rec in self.itf_lines:
             html_content += f"""
-                                                    <tbody>
                                                           <tr>
                                                               <td>{rec._purpose if rec._purpose else ''}</td>
                                                           </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                    """
 
         html_content += f"""
+        </tbody> 
+                                                </table>
                                                 <div class="button-container">
                                                      <a href='{approval_url}' style="background-color: green;" class="button">Approve</a>
                                                     <a href='{disapproval_url}' style="background-color: red" class="button">Disapprove</a>
@@ -976,17 +980,19 @@ class ItRequestForm(models.Model):
                                                             <th>Purpose</th>
                                                         </tr>
                                                     </thead>
+                                                    <tbody>
+                                                    
                                                     """
         for rec in self.itf_lines:
             html_content += f"""
-                                                    <tbody>
                                                           <tr>
                                                               <td>{rec._purpose if rec._purpose else ''}</td>
                                                           </tr>
-                                                    </tbody> 
-                                                </table>"""
+                                                    """
 
         html_content += f"""
+        </tbody> 
+                                                </table>
                                                 <div class="button-container">
                                                      <a href='{approval_url}' style="background-color: green;" class="button">Approve</a>
                                                     <a href='{disapproval_url}' style="background-color: red" class="button">Disapprove</a>

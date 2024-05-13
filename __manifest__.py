@@ -18,7 +18,7 @@
     'version': '13.0.0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['base', 'hr'],
+    'depends': ['base', 'account', 'hr', 'crm'],
 
     # always loaded
 
@@ -41,9 +41,11 @@
         'views/client_pickup_permit.xml',
         'views/overtime_authorization_form.xml',
         'views/gasoline_allowance_form.xml',
+        'views/payment_request_form.xml',
         'views/grab_request_form.xml',
         'views/res_config_settings.xml',
         'views/preview_dashboard.xml',
+        'views/account_move.xml',
         ## Report
 
         'reports/menu/paper_types.xml',
@@ -58,4 +60,3 @@
 
 }
 # -*- coding: utf-8 -*-
-

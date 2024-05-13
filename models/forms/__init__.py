@@ -6,3 +6,4 @@ from . import on_line_purchases
 from . import request_for_cash_advance
 from . import grab_request_form
 from . import client_pick_up_permit
+from . import payment_request_form
